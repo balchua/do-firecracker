@@ -1,0 +1,44 @@
+#cloud-config
+
+# Update apt database on first boot (run 'apt-get update').
+# Note, if packages are given, or package_upgrade is true, then
+# update will be done independent of this setting.
+#
+# Default: false
+# Aliases: apt_update
+package_update: true
+
+# Install additional packages on first boot
+#
+# Default: none
+#
+# if packages are specified, this apt_update will be set to true
+#
+# packages may be supplied as a single package name or as a list
+# with the format [<package>, <version>] wherein the specifc
+# package version will be installed.
+packages:
+- bridge-utils
+
+#Add user
+users:
+- name: fireman
+  ssh-authorized-keys:
+    - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDNNv/ywt1R0gX5jKn7P/RnS84N9hSAQqta1xwu9NNAyRvvBWm9LnutnvcOHmn9QzYMod3g/JwphADKBPYY/p+3T/Yx+MWXLL9kIFds/OSbfVBRgmnsChBqAWyzp860UdSEmdPWwPLraTyGlXQyPrWYyVKT0K57zKJd9t4Di/0JXTiCdGgZ+bwip8O+DPIbcIqagGhEe4S4U3D710psVpcrEqScpZlPd64B0fSjDIqpXqpQektjLgeaBeHQaX/ugkBJ0UcDvfA3RHkKyv7tdcHotKJZnRiiajIDjnk987YLlPzHsbVqm1T67iWdOhffd8Y1U6gYA7rdiJ+5EoyJn5GF /home/thor/.ssh/id_rsa
+  sudo: ['ALL=(ALL) NOPASSWD:ALL']
+  groups: sudo
+  shell: /bin/bash
+
+
+runcmd:
+- sudo setfacl -m u:fireman:rw /dev/kvm
+- curl -LOJ https://github.com/firecracker-microvm/firecracker/releases/download/v0.12.0/firecracker-v0.12.0
+- chmod +x firecracker-v0.12.0
+- mv firecracker-v0.12.0 /usr/bin/firecracker
+- sudo ip tuntap add tap0 mode tap # user $(id -u) group $(id -g)
+- sudo ip addr add 172.17.100.1/24 dev tap0
+- sudo ip link set tap0 up
+- sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
+- sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+- sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+- sudo iptables -A FORWARD -i tap0 -o eth0 -j ACCEPT
