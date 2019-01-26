@@ -11,6 +11,8 @@ Pre-requisites:
    - Cloud init stuffs:
      - Download the firecracker binary (v0.12.0).
      - Setup network TAP, so that firecracker VM will have access to the network.  (see `src/terraform/templates/firecracker-server.tmpl`)
+   - After the cloud init process, (check the `src/terraform/firecracker-server.tf`)
+     - Download the vm images and rootfs.
      - Increase the `rootfs` to 2GB, otherwise it stays at 28MB, nothing can be done with it. :)
      - Create `fireman` user to launch firecracker.
    
